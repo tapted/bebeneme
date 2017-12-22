@@ -75,18 +75,18 @@
   app.dumpNames = function() {
     var sex = document.getElementById('sex').value;
     var startchar = document.getElementById('startchar').value;
-    document.getElementById('dump').value = 'Fetching..';
-    var req = new XMLHttpRequest();
-    req.open('GET', 'data/' + sex + '-' + startchar + '.gz', true);
-    req.responseType = "arraybuffer";
-    req.onload = function(response) {
-      document.getElementById('dump').value = 'Decompressing..';
-      var compressed = new Uint8Array(req.response);
-      var uncompressed = pako.deflate(compressed);
-      var text = new TextDecoder("utf-8").decode(uncompressed);
-      document.getElementById('dump').value = text;
-    };
-    req.send();
+    var dump = document.getElementById('dump');
+    dump.value = 'Fetching..';
+    fetch('data/' + sex + '-' + startchar + '.txt')
+      .then(function(response) {
+        if (response.status != 200) {
+          dump.value = 'Failure: ' + response.status + ' for ' + response.url;
+        } else {
+          response.text().then(function(text) {
+            dump.value = text;
+          });
+        }
+      });
   }
 
   // Toggles the visibility of the add new city dialog.

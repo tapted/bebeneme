@@ -13,7 +13,7 @@ var filesToCache = [
 var SEX = ['MALE', 'FEMALE'];
 for (var s in SEX) {
   for (var i = 0 ; i < 26 ; ++i) {
-    filesToCache.push('/data/' + SEX[s] + '-' + String.fromCharCode('a'.charCodeAt(0) + i) + '.gz');
+    filesToCache.push('/data/' + SEX[s] + '-' + String.fromCharCode('a'.charCodeAt(0) + i) + '.txt');
   }
 }
 
@@ -25,7 +25,8 @@ self.addEventListener('install', function(e) {
       console.log('[ServiceWorker] Caching app shell');
       // / may redirect, so cache separately.
       fetch('/').then(function(response) {
-        cache.put('/', new Response(response.body));
+        if (response.status == 200)
+          cache.put('/', new Response(response.body));
       });
       return cache.addAll(filesToCache);
     })

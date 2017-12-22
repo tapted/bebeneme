@@ -14,27 +14,25 @@ handlers:
 # The script value is in the format <path.to.module>.<wsgi_application>
 # where <wsgi_application> is a WSGI application object.
 
-# Serve images as static resources.
-- url: /(.+\.(gif|png|jpg|css|svg|js|ico))$
-  static_files: \1
-  upload: .+\.(gif|png|jpg|css|svg|js|ico)$
-  application_readable: true
-
 # Serve data.
 - url: /data
   static_dir: data
-
 - url: /scripts
   static_dir: scripts
-
 - url: /styles
   static_dir: styles
+- url: /images
+  static_dir: images
+- url: /favicon.ico
+  static_files: favicon.ico
+  upload: favicon.ico
+- url: /service-worker.js
+  static_files: service-worker.js
+  upload: service-worker.js
 
 - url: /
   static_files: 'index.html'
   upload: 'index.html'
-  login: required
 
 - url: .*  # This regex directs all routes to main.app
   script: main.app
-  login: required
