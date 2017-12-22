@@ -1,2 +1,3 @@
 lib
 data/my.cnf
+*.pyc
