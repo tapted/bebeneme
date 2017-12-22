@@ -1,5 +1,5 @@
-var dataCacheName = 'catfeedData-v1.01';
-var cacheName = 'catfeedPWA-step-1';
+var dataCacheName = 'bebenemeData-v1.01';
+var cacheName = 'bebenemePWA-step-1';
 var filesToCache = [
   '/',
   '/scripts/app.js',
@@ -43,7 +43,7 @@ self.addEventListener('fetch', function(e) {
   if (e.request.url.indexOf(dataUrl) > -1) {
     /*
      * When the request URL contains dataUrl, the app is asking for fresh
-     * catfeed data. In this case, the service worker always goes to the
+     * bebeneme data. In this case, the service worker always goes to the
      * network and then caches the response. This is called the "Cache then
      * network" strategy:
      * https://jakearchibald.com/2014/offline-cookbook/#cache-then-network
