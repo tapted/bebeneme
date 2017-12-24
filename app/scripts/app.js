@@ -10,6 +10,7 @@
     container: document.querySelector('.main'),
     addDialog: document.querySelector('.dialog-container'),
     dump: document.getElementById('dump'),
+    nameOutput: document.getElementById('nameOutput'),
     daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     maleNameDist: "annbsbdkdbgsdlfvspgsgerajajecdcmmkwwsemcfnakiygmsmsnaahcncyptzkatstbrjkjhnhnsbaaabmuadjlkkrirwapkbejkrytcaabsqpatbclemkjiatgmdizlwrmrrdtbhmjttmmdmondksrtksajmmchkkgfsgaactjllatlhsepkrajmsadcanecdcmrkjkkdbjtfamtrxmszsoelrvideydzltbthyajrsglajszhtdvmjtjvsfsrosckjkmddjo",
     SEX: {'m': 'MALE', 'f': 'FEMALE'},
@@ -33,6 +34,10 @@
 
   document.getElementById('butStart').addEventListener('click', function() {
     app.start();
+  });
+
+  document.getElementById('butNext').addEventListener('click', function() {
+    app.next();
   });
 
   document.getElementById('startchar').addEventListener('change', function() {
@@ -98,7 +103,6 @@
 
   app.init = function() {
     // app.rng = new alea(app.data.seed);
-    app.next();
     app.spinner.setAttribute('hidden', true);
   };
 
@@ -107,7 +111,25 @@
   };
 
   app.next = function() {
-
+    if (app.data.letter >= app.maleNameDist.length)
+      app.data.letter = 0;
+    let c = app.maleNameDist[app.data.letter];
+    let s = 'm';
+    let chunk = app.names[s][c];
+    if (chunk.nUnpop / (chunk.nPop + chunk.nUnpop) < app.data.popularCutoff) {
+      ++chunk.nUnpop;
+      app.nameOutput.innerHTML = chunk.name[chunk.unpop + chunk.cutoff] + ' [' + (chunk.unpop + chunk.cutoff) + '] (u).';
+      do {
+        chunk.unpop = (chunk.unpop + chunk.highPrimes[0]) % chunk.highPrimes[1];
+      } while (chunk.unpop + chunk.cutoff >= chunk.name.length);
+    } else {
+      ++chunk.nPop;
+      app.nameOutput.innerHTML = chunk.name[chunk.pop] + ' [' + chunk.pop + ']';
+      do {
+        chunk.pop = (chunk.pop + chunk.lowPrimes[0]) % chunk.lowPrimes[1];
+      } while (chunk.pop > chunk.cutoff);
+    }
+    ++app.data.letter;
   };
 
   app.start = function() {
@@ -147,13 +169,21 @@
     console.log(app.sieve);
     for (var s in app.SEX) {
       for (var i = 0 ; i < 26 ; ++i) {
+        var chunk = app.names[s][c];
         var c = String.fromCharCode('a'.charCodeAt(0) + i);
-        var n =  app.names[s][c].name.length;
+        var n =  chunk.name.length;
+        chunk.cutoff = Math.floor(n * app.data.popularCutoff);
+        chunk.lowPrimes = app.getPrimes(chunk.cutoff);
+        chunk.highPrimes = app.getPrimes(chunk.name.length - chunk.cutoff);
+        chunk.nPop = 0;
+        chunk.nUnpop = 0;
+        chunk.pop = chunk.lowPrimes[0];
+        chunk.unpop = chunk.highPrimes[0];
         var p = app.getPrimes(n);
-        app.names[s][c].primes = p;
-        stats += '\n' + s + '-' + c + '(' + n + ')[' + p[0] + ' % ' + p[1] + ']';
+        stats += '\n' + s + '-' + c + '(' + n + ')[' + p[0] + ' % ' + p[1] + '] | ' + chunk.cutoff;
       }
     }
+    app.data.letter = 0;
     app.dump.value += stats;
     app.spinner.setAttribute('hidden', true);
   };
@@ -179,7 +209,7 @@
   };
 
   app.getPrimes = function(n) {
-    let lower = n - 1;
+    let lower = Math.floor(n / 2 - 1);  // TODO: get this randomly.
     let upper = n;
     for (; lower > 0; --lower) {
       if (app.sieve[lower]) {
@@ -404,7 +434,7 @@
   var initialData = {
     seed: Math.random(),
     sequence: 0,
-    popularCutoff: 0.1,  // 10% of names will be "popular".
+    popularCutoff: 0.05,  // 5% of names will be "popular".
     popularRatio: 0.5  // 50% of suggestions will be popular.
   };
 
