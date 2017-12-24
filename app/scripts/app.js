@@ -9,7 +9,11 @@
     cardTemplate: document.querySelector('.cardTemplate'),
     container: document.querySelector('.main'),
     addDialog: document.querySelector('.dialog-container'),
-    daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    dump: document.getElementById('dump'),
+    daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    maleNameDist: "annbsbdkdbgsdlfvspgsgerajajecdcmmkwwsemcfnakiygmsmsnaahcncyptzkatstbrjkjhnhnsbaaabmuadjlkkrirwapkbejkrytcaabsqpatbclemkjiatgmdizlwrmrrdtbhmjttmmdmondksrtksajmmchkkgfsgaactjllatlhsepkrajmsadcanecdcmrkjkkdbjtfamtrxmszsoelrvideydzltbthyajrsglajszhtdvmjtjvsfsrosckjkmddjo",
+    SEX: {'m': 'MALE', 'f': 'FEMALE'},
+    names: {'m': {}, 'f' : {}},
   };
 
 
@@ -25,6 +29,10 @@
 
   document.getElementById('butRefresh').addEventListener('click', function() {
     app.fetchData();
+  });
+
+  document.getElementById('butStart').addEventListener('click', function() {
+    app.start();
   });
 
   document.getElementById('startchar').addEventListener('change', function() {
@@ -75,8 +83,7 @@
   app.dumpNames = function() {
     var sex = document.getElementById('sex').value;
     var startchar = document.getElementById('startchar').value;
-    var dump = document.getElementById('dump');
-    dump.value = 'Fetching..';
+    app.dump.value = 'Fetching..';
     fetch('data/' + sex + '-' + startchar + '.txt')
       .then(function(response) {
         if (response.status != 200) {
@@ -87,7 +94,106 @@
           });
         }
       });
-  }
+  };
+
+  app.init = function() {
+    // app.rng = new alea(app.data.seed);
+    app.next();
+    app.spinner.setAttribute('hidden', true);
+  };
+
+  app.save = function() {
+    localStorage.data = JSON.stringify(app.data);
+  };
+
+  app.next = function() {
+
+  };
+
+  app.start = function() {
+    app.spinner.removeAttribute('hidden');
+    app.dump.value = "Fetching..";
+    var latch = 26 * 2;
+    for (let s in app.SEX) {
+      for (let i = 0 ; i < 26 ; ++i) {
+        let c = String.fromCharCode('a'.charCodeAt(0) + i);
+        let path = '/data/' + app.SEX[s] + '-' + c + '.txt';
+        fetch(path).then(function(response) {
+          response.text().then(function(text) {
+            app.names[s][c] = {'name' : text.split('\n') };
+            app.dump.value += '\n' + latch + '(' + s + '-' + c + ')';
+            if (--latch == 0) {
+              app.stats();
+            }
+          });
+        });
+      }
+    }
+  };
+
+  app.stats = function() {
+    var stats = "";
+    var largest = 0;
+    for (var s in app.SEX) {
+      for (var i = 0 ; i < 26 ; ++i) {
+        var c = String.fromCharCode('a'.charCodeAt(0) + i);
+        var n =  app.names[s][c].name.length;
+        if (n > largest)
+          largest = n;
+      }
+    }
+    app.dump.value = 'Fetched.. calculating. Largest=' + largest;
+    app.eratosthenes(largest * 2);
+    console.log(app.sieve);
+    for (var s in app.SEX) {
+      for (var i = 0 ; i < 26 ; ++i) {
+        var c = String.fromCharCode('a'.charCodeAt(0) + i);
+        var n =  app.names[s][c].name.length;
+        var p = app.getPrimes(n);
+        app.names[s][c].primes = p;
+        stats += '\n' + s + '-' + c + '(' + n + ')[' + p[0] + ' % ' + p[1] + ']';
+      }
+    }
+    app.dump.value += stats;
+    app.spinner.setAttribute('hidden', true);
+  };
+
+  app.eratosthenes = function(n) {
+    // Eratosthenes algorithm to find all primes under n
+    var array = [], upperLimit = Math.sqrt(n), output = [];
+
+    // Make an array from 2 to (n - 1)
+    for (var i = 0; i < n; i++) {
+        array.push(true);
+    }
+
+    // Remove multiples of primes starting from 2, 3, 5,...
+    for (var i = 2; i <= upperLimit; i++) {
+        if (array[i]) {
+            for (var j = i * i; j < n; j += i) {
+                array[j] = false;
+            }
+        }
+    }
+    app.sieve = array;
+  };
+
+  app.getPrimes = function(n) {
+    let lower = n - 1;
+    let upper = n;
+    for (; lower > 0; --lower) {
+      if (app.sieve[lower]) {
+        break;
+      }
+    }
+    for (; upper < app.sieve.length; ++upper) {
+      if (app.sieve[upper]) {
+        break;
+      }
+    }
+    return [lower, upper];
+  };
+
 
   // Toggles the visibility of the add new city dialog.
   app.toggleAddDialog = function(visible) {
@@ -295,34 +401,22 @@
   };
 
   /* Sample data */
-  var initialPet = {
-    key: 'pending',
-    name: 'Angus',
-    created: '2016-07-22T01:00:00Z',
-    am: '07:00:00',
-    pm: '19:30:00',
-    current: {
-      date: '2016-07-22T01:00:00Z',
-      feeder: 'Fred',
-    },
+  var initialData = {
+    seed: Math.random(),
+    sequence: 0,
+    popularCutoff: 0.1,  // 10% of names will be "popular".
+    popularRatio: 0.5  // 50% of suggestions will be popular.
   };
-  app.phase = 'Local';
 
-  app.selectedPets = localStorage.selectedPets;
-  if (app.selectedPets) {
-    app.selectedPets = JSON.parse(app.selectedPets);
-    for (var i in app.selectedPets) {
-      app.selectedPets[i].fresh = false;
-      app.updatePetCard(app.selectedPets[i]);
-    }
+  app.data = localStorage.data;
+  if (app.data) {
+    app.data = JSON.parse(app.data);
   } else {
-    /* The user is using the app for the first time. */
-    app.selectedPets = [ initialPet ];
-    app.updatePetCard(initialPet);
+    app.data = initialData;
   }
 
-  app.phase = 'Server';
-  app.fetchData();
+  app.init();
+  app.save();
 
   // TODO add service worker code here
   if ('serviceWorker' in navigator) {
